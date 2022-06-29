@@ -22,8 +22,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 add_executable(flatscan
   src/demo.cc
   src/flatscan.cc
-  src/parser.cc
-  src/protocol.cc
+  src/common/parser.cc
+  src/common/protocol.cc
 )
 ament_target_dependencies(flatscan
   "rclcpp"

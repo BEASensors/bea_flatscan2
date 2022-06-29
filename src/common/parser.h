@@ -1,13 +1,9 @@
 #pragma once
 
-#include <sensor_msgs/msg/laser_scan.hpp>
 #include <unordered_map>
 
-#include "bea_sensors/msg/emergency.hpp"
-#include "bea_sensors/msg/heartbeat.hpp"
-#include "bea_sensors/msg/parameters.hpp"
-#include "bea_sensors/srv/configure.hpp"
 #include "data_frame.h"
+#include "environment.h"
 
 namespace bea_sensors {
 
@@ -50,15 +46,15 @@ class Parser {
   Parser();
   ~Parser();
 
-  void Initialize(const msg::Parameters& parameters = msg::Parameters()) { parameters_ = parameters; }
+  void Initialize(const Parameters& parameters = Parameters()) { parameters_ = parameters; }
   bool GenerateDataFrame(const std::string& command, const std::string& subcommand, const std::string& value, bool& success, std::string& description,
                          DataFrame& frame);
   bool ParseDataFrame(const DataFrame& frame);
 
-  const sensor_msgs::msg::LaserScan& laser_scan() const { return laser_scan_; }
-  const msg::Heartbeat& heartbeat() const { return heartbeat_; }
-  const msg::Emergency& emergency() const { return emergency_; }
-  const msg::Parameters& parameters() const { return parameters_; }
+  const LaserScan& laser_scan() const { return laser_scan_; }
+  const Heartbeat& heartbeat() const { return heartbeat_; }
+  const Emergency& emergency() const { return emergency_; }
+  const Parameters& parameters() const { return parameters_; }
 
  private:
   void GenerateSetBaudrateFrame(const std::string& command, const std::string& subcommand, const std::string& value, bool& success,
@@ -70,17 +66,17 @@ class Parser {
   void GenerateSetLedFrame(const std::string& command, const std::string& subcommand, const std::string& value, bool& success,
                            std::string& description, DataFrame& frame) const;
 
-  void ParseMdiMessage(const uint8_t*& data, const int& length, sensor_msgs::msg::LaserScan& message) const;
+  void ParseMdiMessage(const uint8_t*& data, const int& length, LaserScan& message) const;
   void ParseSendIdentityMessage(const uint8_t*& data, const int& length) const;
-  void ParseSendParametersMessage(const uint8_t*& data, const int& length, msg::Parameters& parameters) const;
-  void ParseHeartbeatMessage(const uint8_t*& data, const int& length, msg::Heartbeat& message) const;
-  void ParseEmergencyMessage(const uint8_t*& data, const int& length, msg::Emergency& message) const;
+  void ParseSendParametersMessage(const uint8_t*& data, const int& length, Parameters& parameters) const;
+  void ParseHeartbeatMessage(const uint8_t*& data, const int& length, Heartbeat& message) const;
+  void ParseEmergencyMessage(const uint8_t*& data, const int& length, Emergency& message) const;
 
  private:
-  sensor_msgs::msg::LaserScan laser_scan_;
-  msg::Heartbeat heartbeat_;
-  msg::Emergency emergency_;
-  msg::Parameters parameters_;
+  LaserScan laser_scan_;
+  Heartbeat heartbeat_;
+  Emergency emergency_;
+  Parameters parameters_;
 };
 
 }  // namespace bea_sensors

@@ -7,6 +7,8 @@
 #include <sys/types.h>
 #include <termios.h>
 
+#include "environment.h"
+
 namespace bea_sensors {
 
 template <class cInstance>
@@ -56,7 +58,7 @@ template <class cInstance>
 void SerialPort<cInstance>::RegisterCallback(cInstance* instance, SerialPort<cInstance>::tFunction function_ptr) {
   instance_ = instance;
   function_ptr_ = function_ptr;
-  RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Callback function registered");
+  LOG_INFO("Callback function registered");
 }
 
 template <class cInstance>
@@ -65,7 +67,7 @@ int SerialPort<cInstance>::Connect(std::string port, int baud) {
   baudrate_ = baud;
   is_running_ = true;
 
-  RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Creating data receiving thread");
+  LOG_INFO("Creating data receiving thread");
   if (pthread_create(&receiving_thread_, nullptr, ReceiverRoutine, (void*)this)) {
     return -1;
   }
@@ -103,10 +105,10 @@ void* SerialPort<cInstance>::ReceiverRoutine(void* arg) {
       if (port->serial_fd_ < 0) {
         ++retries;
         if (retries > 10) {
-          RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Cannot open %s, please check", port->port_.c_str());
+          LOG_ERROR("Cannot open %s, please check", port->port_.c_str());
           return nullptr;
         }
-        RCLCPP_WARN(rclcpp::get_logger("rclcpp"), "Open %s failed, tried %d times, try again..", port->port_.c_str(), retries);
+        LOG_WARN("Open %s failed, tried %d times, try again..", port->port_.c_str(), retries);
         sleep(1);
         continue;
       }
@@ -127,7 +129,7 @@ void* SerialPort<cInstance>::ReceiverRoutine(void* arg) {
       tcsetattr(port->serial_fd_, TCSANOW, &newtio);
 
       port->is_connected_ = true;
-      RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Open %s successfully (baudrate: %d), let's rock!", port->port_.c_str(), port->baudrate_);
+      LOG_INFO("Open %s successfully (baudrate: %d), let's rock!", port->port_.c_str(), port->baudrate_);
       break;
     }
 
@@ -159,7 +161,7 @@ void* SerialPort<cInstance>::ReceiverRoutine(void* arg) {
   }
 
   close(port->serial_fd_);
-  RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Port %s closed", port->port_.c_str());
+  LOG_INFO("Port %s closed", port->port_.c_str());
   return nullptr;
 }
 

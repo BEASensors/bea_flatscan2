@@ -1,8 +1,7 @@
 #include "parser.h"
 
 #include <angles/angles.h>
-
-#include <rclcpp/rclcpp.hpp>
+#include <ros/console.h>
 
 namespace bea_sensors {
 
@@ -193,31 +192,31 @@ bool Parser::ParseDataFrame(const DataFrame& frame) {
       ParseEmergencyMessage(data, length, emergency_);
     } break;
     case CommandToSensor::SET_BAUDRATE: {
-      RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Set baudrate succeeded: %i", data[0]);
+      LOG_INFO("Set baudrate succeeded: %i", data[0]);
     } break;
     case CommandToSensor::STORE_PARAMETERS: {
-      RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Store parameters succeeded");
+      LOG_INFO("Store parameters succeeded");
     } break;
     case CommandToSensor::RESET_MDI_COUNTER: {
-      RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Reset MDI counter succeeded");
+      LOG_INFO("Reset MDI counter succeeded");
     } break;
     case CommandToSensor::RESET_HEARTBEAT_COUNTER: {
-      RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Reset heartbeat counter succeeded");
+      LOG_INFO("Reset heartbeat counter succeeded");
     } break;
     case CommandToSensor::RESET_EMERGENCY_COUNTER: {
-      RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Reset emergency counter succeeded");
+      LOG_INFO("Reset emergency counter succeeded");
     } break;
     case CommandToSensor::SET_LED: {
-      RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Set LED succeeded");
+      LOG_INFO("Set LED succeeded");
     } break;
     default:
-      RCLCPP_WARN(rclcpp::get_logger("rclcpp"), "Unknown CMD from sensor: %i", command);
+      LOG_WARN("Unknown CMD from sensor: %i", command);
       return false;
   }
   return true;
 }
 
-void Parser::ParseMdiMessage(const uint8_t*& data, const int& length, sensor_msgs::msg::LaserScan& message) const {
+void Parser::ParseMdiMessage(const uint8_t*& data, const int& length, LaserScan& message) const {
   uint16_t start_index{0};
   start_index += (parameters_.counter > 0 ? 6 : 0);
   start_index += (parameters_.temperature > 0 ? 2 : 0);
@@ -227,11 +226,11 @@ void Parser::ParseMdiMessage(const uint8_t*& data, const int& length, sensor_msg
   uint16_t total_length{static_cast<uint16_t>(start_index + distance_length)};
   total_length += parameters_.information == 2 ? distance_length : 0;
   if (total_length != length) {
-    RCLCPP_WARN(rclcpp::get_logger("rclcpp"), "MDI data length mismatch (should be %i but get %i)", total_length, length);
+    LOG_ERROR("MDI data length mismatch (should be %i but get %i)", total_length, length);
     return;
   }
 
-  message.header.stamp = rclcpp::Clock().now();
+  message.header.stamp = Stamp();
   message.header.frame_id = parameters_.header.frame_id;
   message.angle_min = angles::from_degrees(static_cast<float>(parameters_.angle_first) * 1e-2);
   message.angle_max = angles::from_degrees(static_cast<float>(parameters_.angle_last) * 1e-2);
@@ -277,14 +276,14 @@ void Parser::ParseSendIdentityMessage(const uint8_t*& data, const int& length) c
   const uint8_t software_revision{data[5]};
   const uint8_t software_prototype{data[6]};
   const uint32_t serial_number{static_cast<uint32_t>(data[7] | data[8] << 8 | data[9] << 16 | data[10] << 24)};
-  RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "product_part_number: %i", product_part_number);
-  RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "software_version: %i", software_version);
-  RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "software_revision: %i", software_revision);
-  RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "software_prototype: %i", software_prototype);
-  RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "serial_number: %i", serial_number);
+  LOG_INFO("product_part_number: %i", product_part_number);
+  LOG_INFO("software_version: %i", software_version);
+  LOG_INFO("software_revision: %i", software_revision);
+  LOG_INFO("software_prototype: %i", software_prototype);
+  LOG_INFO("serial_number: %i", serial_number);
 }
 
-void Parser::ParseSendParametersMessage(const uint8_t*& data, const int& length, msg::Parameters& parameters) const {
+void Parser::ParseSendParametersMessage(const uint8_t*& data, const int& length, Parameters& parameters) const {
   const uint32_t verification_code{static_cast<uint32_t>(data[0] | data[1] << 8 | data[2] << 16 | data[3] << 24)};
   const uint16_t charge{static_cast<uint16_t>(data[4] | data[5] << 8)};
 
@@ -300,32 +299,32 @@ void Parser::ParseSendParametersMessage(const uint8_t*& data, const int& length,
   parameters.facet = data[26];
   parameters.averaging = data[27];
 
-  RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "verification_code: %i", verification_code);
-  RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "charge: %i", charge);
-  RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "temperature_enabled: %i", parameters.temperature);
-  RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "information: %i", parameters.information);
-  RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "detection_field_mode: %i", parameters.mode);
-  RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "optimization: %i", parameters.optimization);
-  RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "number_of_spots: %i", parameters.number_of_spots);
-  RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "angle_first: %f", angles::from_degrees(static_cast<float>(parameters_.angle_first) * 1e-2));
-  RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "angle_last: %f", angles::from_degrees(static_cast<float>(parameters_.angle_last) * 1e-2));
-  RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "counter_enabled: %i", parameters.counter);
-  RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "heartbeat_period: %i", parameters.heartbeat_period);
-  RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "facet_enabled: %i", parameters.facet);
-  RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "averaging_setting: %i", parameters.averaging);
+  LOG_INFO("verification_code: %i", verification_code);
+  LOG_INFO("charge: %i", charge);
+  LOG_INFO("temperature_enabled: %i", parameters.temperature);
+  LOG_INFO("information: %i", parameters.information);
+  LOG_INFO("detection_field_mode: %i", parameters.mode);
+  LOG_INFO("optimization: %i", parameters.optimization);
+  LOG_INFO("number_of_spots: %i", parameters.number_of_spots);
+  LOG_INFO("angle_first: %f", angles::from_degrees(static_cast<float>(parameters_.angle_first) * 1e-2));
+  LOG_INFO("angle_last: %f", angles::from_degrees(static_cast<float>(parameters_.angle_last) * 1e-2));
+  LOG_INFO("counter_enabled: %i", parameters.counter);
+  LOG_INFO("heartbeat_period: %i", parameters.heartbeat_period);
+  LOG_INFO("facet_enabled: %i", parameters.facet);
+  LOG_INFO("averaging_setting: %i", parameters.averaging);
 }
 
-void Parser::ParseHeartbeatMessage(const uint8_t*& data, const int& length, msg::Heartbeat& message) const {
-  message.header.stamp = rclcpp::Clock().now();
+void Parser::ParseHeartbeatMessage(const uint8_t*& data, const int& length, Heartbeat& message) const {
+  message.header.stamp = Stamp();
   message.count = static_cast<uint16_t>(data[4] | data[5] << 8);
 }
 
-void Parser::ParseEmergencyMessage(const uint8_t*& data, const int& length, msg::Emergency& message) const {
-  message.header.stamp = rclcpp::Clock().now();
+void Parser::ParseEmergencyMessage(const uint8_t*& data, const int& length, Emergency& message) const {
+  message.header.stamp = Stamp();
   message.count = static_cast<uint16_t>(data[4] | data[5] << 8);
   message.rs485_error = static_cast<uint16_t>(data[6] | data[7] << 8);
   message.sensor_error = static_cast<uint16_t>(data[8] | data[9] << 8);
-  RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "msg::Emergency count: %i, error code: %i %i", message.count, message.rs485_error, message.sensor_error);
+  LOG_INFO("Emergency count: %i, error code: %i %i", message.count, message.rs485_error, message.sensor_error);
 }
 
 }  // namespace bea_sensors

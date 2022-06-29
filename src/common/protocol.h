@@ -4,6 +4,7 @@
 #include <boost/thread.hpp>
 
 #include "data_frame.h"
+#include "environment.h"
 
 namespace bea_sensors {
 

@@ -1,6 +1,6 @@
 #include "protocol.h"
 
-#include <rclcpp/rclcpp.hpp>
+#include <ros/console.h>
 
 constexpr uint16_t polynomial{0x90d9};
 
@@ -47,7 +47,7 @@ uint16_t Protocol::GenerateRawFrame(const uint16_t& command, const uint8_t* data
   // std::cout << std::endl;
 
   if (index != frame_length) {
-    RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "GenerateRawFrame error");
+    LOG_ERROR("GenerateRawFrame error");
     return 0;
   }
 
@@ -168,9 +168,11 @@ bool Protocol::ExtractChecksum(const uint8_t& byte) {
   }
   if (checksum_ == CRC16(frame, frame_length)) {
     delete[] frame;
+    LOG_INFO("CRC16 check succeeded");
     return true;
   } else {
     delete[] frame;
+    LOG_WARN("CRC16 check failed");
     return false;
   }
 }

@@ -1,11 +1,10 @@
 #pragma once
 
 #include <mutex>
-#include <rclcpp/rclcpp.hpp>
 
-#include "parser.h"
-#include "protocol.h"
-#include "serial_port.h"
+#include "common/parser.h"
+#include "common/protocol.h"
+#include "common/serial_port.h"
 
 namespace bea_sensors {
 
