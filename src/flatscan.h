@@ -13,7 +13,7 @@ class Flatscan : public rclcpp::Node {
   Flatscan();
   ~Flatscan();
 
-  void SpinOnce();
+  void PublisherRoutine();
 
  private:
   bool Initialize();
@@ -27,9 +27,9 @@ class Flatscan : public rclcpp::Node {
   bool message_sent_ = false;
   std::mutex mutex_;
 
-  rclcpp::Time last_scan_stamp_ = this->get_clock()->now();
-  rclcpp::Time last_heartbeat_stamp_ = this->get_clock()->now();
-  rclcpp::Time last_emergency_stamp_ = this->get_clock()->now();
+  rclcpp::Time last_scan_stamp_ = rclcpp::Clock(RCL_ROS_TIME).now();
+  rclcpp::Time last_heartbeat_stamp_ = rclcpp::Clock(RCL_ROS_TIME).now();
+  rclcpp::Time last_emergency_stamp_ = rclcpp::Clock(RCL_ROS_TIME).now();
 
   rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr laser_scan_publisher_;
   rclcpp::Publisher<msg::Emergency>::SharedPtr emergency_publisher_;

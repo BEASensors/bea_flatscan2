@@ -1,5 +1,6 @@
 #pragma once
 
+#include <mutex>
 #include <unordered_map>
 
 #include "data_frame.h"
@@ -46,7 +47,11 @@ class Parser {
   Parser();
   ~Parser();
 
-  void Initialize(const Parameters& parameters = Parameters()) { parameters_ = parameters; }
+  void Initialize(const Parameters& parameters = Parameters()) {
+    std::unique_lock<std::mutex> lock(parameters_mutex_);
+    parameters_ = parameters;
+    lock.unlock();
+  }
   bool GenerateDataFrame(const std::string& command, const std::string& subcommand, const std::string& value, bool& success, std::string& description,
                          DataFrame& frame);
   bool ParseDataFrame(const DataFrame& frame);
@@ -73,6 +78,11 @@ class Parser {
   void ParseEmergencyMessage(const uint8_t*& data, const int& length, Emergency& message) const;
 
  private:
+  std::mutex laser_mutex_;
+  std::mutex heartbeat_mutex_;
+  std::mutex emergency_mutex_;
+  std::mutex parameters_mutex_;
+
   LaserScan laser_scan_;
   Heartbeat heartbeat_;
   Emergency emergency_;

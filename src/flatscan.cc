@@ -10,26 +10,6 @@ Flatscan::Flatscan() : Node("bea_flatscan") { Initialize(); }
 
 Flatscan::~Flatscan() { com_.Close(); }
 
-void Flatscan::SpinOnce() {
-  const rclcpp::Time current_scan_stamp{parser_.laser_scan().header.stamp};
-  if (laser_scan_publisher_->get_subscription_count() > 0 && last_scan_stamp_ < current_scan_stamp) {
-    laser_scan_publisher_->publish(parser_.laser_scan());
-    last_scan_stamp_ = current_scan_stamp;
-  }
-
-  const rclcpp::Time current_heartbeat_stamp{parser_.heartbeat().header.stamp};
-  if (heartbeat_publisher_->get_subscription_count() > 0 && last_heartbeat_stamp_ < current_heartbeat_stamp) {
-    heartbeat_publisher_->publish(parser_.heartbeat());
-    last_heartbeat_stamp_ = current_heartbeat_stamp;
-  }
-
-  const rclcpp::Time current_emergency_stamp{parser_.emergency().header.stamp};
-  if (emergency_publisher_->get_subscription_count() > 0 && last_emergency_stamp_ < current_emergency_stamp) {
-    emergency_publisher_->publish(parser_.emergency());
-    last_emergency_stamp_ = current_emergency_stamp;
-  }
-}
-
 bool Flatscan::Initialize() {
   std::string port;
   this->get_parameter_or("port", port, std::string("/dev/ttyUSB0"));
@@ -62,7 +42,8 @@ bool Flatscan::Initialize() {
     parameters.mode = 0;
     parameters.number_of_spots = 100;
   } else {
-    RCLCPP_WARN(rclcpp::get_logger("rclcpp"), "Flatscan works in %s(UNKNOWN) mode, loading HD configurations by default", detection_field_mode.c_str());
+    RCLCPP_WARN(rclcpp::get_logger("rclcpp"), "Flatscan works in %s(UNKNOWN) mode, loading HD configurations by default",
+                detection_field_mode.c_str());
     parameters.mode = 1;
     parameters.number_of_spots = 400;
   }
@@ -91,8 +72,10 @@ bool Flatscan::Initialize() {
   com_.RegisterCallback(this, &Flatscan::HandleReceivedData);
   com_.Connect(port, baudrate);
 
-  std::thread thread(&Flatscan::ParserRoutine, this);
-  thread.detach();
+  std::thread parser_thread(&Flatscan::ParserRoutine, this);
+  std::thread publisher_thread(&Flatscan::PublisherRoutine, this);
+  parser_thread.detach();
+  publisher_thread.detach();
 
   InitializeConfiguration(parameters);
   return true;
@@ -151,7 +134,7 @@ void Flatscan::HandleReceivedData(char* data, int length) {
 }
 
 void Flatscan::ParserRoutine() {
-  while (true) {
+  while (rclcpp::ok()) {
     DataFrame frame;
     if (!protocol_.GetLatestDataFrame(frame)) {
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -171,6 +154,29 @@ void Flatscan::ParserRoutine() {
       lock.unlock();
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
+}
+
+void Flatscan::PublisherRoutine() {
+  while (rclcpp::ok()) {
+    const rclcpp::Time current_scan_stamp{parser_.laser_scan().header.stamp};
+    if (laser_scan_publisher_->get_subscription_count() > 0 && last_scan_stamp_ < current_scan_stamp) {
+      laser_scan_publisher_->publish(parser_.laser_scan());
+      last_scan_stamp_ = current_scan_stamp;
+    }
+
+    const rclcpp::Time current_heartbeat_stamp{parser_.heartbeat().header.stamp};
+    if (heartbeat_publisher_->get_subscription_count() > 0 && last_heartbeat_stamp_ < current_heartbeat_stamp) {
+      heartbeat_publisher_->publish(parser_.heartbeat());
+      last_heartbeat_stamp_ = current_heartbeat_stamp;
+    }
+
+    const rclcpp::Time current_emergency_stamp{parser_.emergency().header.stamp};
+    if (emergency_publisher_->get_subscription_count() > 0 && last_emergency_stamp_ < current_emergency_stamp) {
+      emergency_publisher_->publish(parser_.emergency());
+      last_emergency_stamp_ = current_emergency_stamp;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(33));
   }
 }
 

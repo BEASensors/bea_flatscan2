@@ -40,7 +40,7 @@ typedef msg::Emergency Emergency;
 typedef msg::Heartbeat Heartbeat;
 typedef msg::Parameters Parameters;
 
-inline const rclcpp::Time Stamp() { return rclcpp::Clock().now(); }
+inline const rclcpp::Time Stamp() { return rclcpp::Clock(RCL_ROS_TIME).now(); }
 
 }  // namespace bea_sensors
 #endif

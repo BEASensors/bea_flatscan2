@@ -24,7 +24,9 @@ bool Parser::GenerateDataFrame(const std::string& command, const std::string& su
   } else if (command == "get_parameters") {
     frame = DataFrame(GET_PARAMETERS, nullptr, 0);
   } else if (command == "set_parameters") {
+    std::unique_lock<std::mutex> lock(parameters_mutex_);
     GenerateSetParametersFrame(command, subcommand, value, success, description, frame);
+    lock.unlock();
   } else if (command == "store_parameters") {
     frame = DataFrame(STORE_PARAMETERS, nullptr, 0);
   } else if (command == "reset_mdi_counter") {
@@ -177,19 +179,29 @@ bool Parser::ParseDataFrame(const DataFrame& frame) {
   const uint16_t length = frame.length();
   switch (command) {
     case CommandFromSensor::MDI: {
+      std::unique_lock<std::mutex> laser_lock(laser_mutex_);
+      std::unique_lock<std::mutex> parameter_lock(parameters_mutex_);
       ParseMdiMessage(data, length, laser_scan_);
+      parameter_lock.unlock();
+      laser_lock.unlock();
     } break;
     case CommandFromSensor::SEND_IDENTITY: {
       ParseSendIdentityMessage(data, length);
     } break;
     case CommandFromSensor::SEND_PARAMETERS: {
+      std::unique_lock<std::mutex> lock(parameters_mutex_);
       ParseSendParametersMessage(data, length, parameters_);
+      lock.unlock();
     } break;
     case CommandFromSensor::HEARTBEAT: {
+      std::unique_lock<std::mutex> lock(heartbeat_mutex_);
       ParseHeartbeatMessage(data, length, heartbeat_);
+      lock.unlock();
     } break;
     case CommandFromSensor::EMERGENCY: {
+      std::unique_lock<std::mutex> lock(emergency_mutex_);
       ParseEmergencyMessage(data, length, emergency_);
+      lock.unlock();
     } break;
     case CommandToSensor::SET_BAUDRATE: {
       LOG_INFO("Set baudrate succeeded: %i", data[0]);
@@ -306,8 +318,8 @@ void Parser::ParseSendParametersMessage(const uint8_t*& data, const int& length,
   LOG_INFO("detection_field_mode: %i", parameters.mode);
   LOG_INFO("optimization: %i", parameters.optimization);
   LOG_INFO("number_of_spots: %i", parameters.number_of_spots);
-  LOG_INFO("angle_first: %f", angles::from_degrees(static_cast<float>(parameters_.angle_first) * 1e-2));
-  LOG_INFO("angle_last: %f", angles::from_degrees(static_cast<float>(parameters_.angle_last) * 1e-2));
+  LOG_INFO("angle_first: %f", static_cast<float>(parameters.angle_first) * 1e-2);
+  LOG_INFO("angle_last: %f", static_cast<float>(parameters.angle_last) * 1e-2);
   LOG_INFO("counter_enabled: %i", parameters.counter);
   LOG_INFO("heartbeat_period: %i", parameters.heartbeat_period);
   LOG_INFO("facet_enabled: %i", parameters.facet);
